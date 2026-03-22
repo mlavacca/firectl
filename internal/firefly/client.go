@@ -65,6 +65,69 @@ type SearchResponse struct {
 	Data []interface{} `json:"data"`
 }
 
+// RuleTrigger represents a single trigger within a Firefly III rule
+type RuleTrigger struct {
+	ID             string `json:"id"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	Title          string `json:"title"`
+	Order          int    `json:"order"`
+	Active         bool   `json:"active"`
+	StopProcessing bool   `json:"stop_processing"`
+	Type           string `json:"type"`
+	Value          string `json:"value"`
+}
+
+// RuleAction represents a single action within a Firefly III rule
+type RuleAction struct {
+	ID             string `json:"id"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	Order          int    `json:"order"`
+	Active         bool   `json:"active"`
+	StopProcessing bool   `json:"stop_processing"`
+	Type           string `json:"type"`
+	Value          string `json:"value"`
+}
+
+// RuleAttributes represents the attributes of a Firefly III rule
+type RuleAttributes struct {
+	CreatedAt      string        `json:"created_at"`
+	UpdatedAt      string        `json:"updated_at"`
+	RuleGroupID    string        `json:"rule_group_id"`
+	RuleGroupTitle string        `json:"rule_group_title"`
+	Order          int           `json:"order"`
+	Title          string        `json:"title"`
+	Description    string        `json:"description"`
+	Trigger        string        `json:"trigger"`
+	Active         bool          `json:"active"`
+	Strict         bool          `json:"strict"`
+	StopProcessing bool          `json:"stop_processing"`
+	Triggers       []RuleTrigger `json:"triggers"`
+	Actions        []RuleAction  `json:"actions"`
+}
+
+// RuleRead represents a single rule as returned by the API
+type RuleRead struct {
+	Type       string         `json:"type"`
+	ID         string         `json:"id"`
+	Attributes RuleAttributes `json:"attributes"`
+}
+
+// RuleArrayResponse represents the paginated response from listing rules
+type RuleArrayResponse struct {
+	Data []RuleRead `json:"data"`
+	Meta struct {
+		Pagination struct {
+			Total       int `json:"total"`
+			Count       int `json:"count"`
+			PerPage     int `json:"per_page"`
+			CurrentPage int `json:"current_page"`
+			TotalPages  int `json:"total_pages"`
+		} `json:"pagination"`
+	} `json:"meta"`
+}
+
 // TransactionExists checks if a transaction with the given external_id exists
 func (c *Client) TransactionExists(externalID string) (bool, error) {
 	endpoint := fmt.Sprintf("%s/api/v1/search/transactions?query=%s",
@@ -153,4 +216,52 @@ func GenerateExternalID(date, amount, description, source, destination, notes st
 		date, amount, description, source, destination, notes)
 	hash := sha256.Sum256([]byte(hashInput))
 	return fmt.Sprintf("%x", hash)
+}
+
+// ListRules fetches all rules from Firefly III, paginating through all pages
+func (c *Client) ListRules() ([]RuleRead, error) {
+	var allRules []RuleRead
+	page := 1
+
+	for {
+		endpoint := fmt.Sprintf("%s/api/v1/rules?page=%d", c.baseURL, page)
+
+		req, err := http.NewRequest("GET", endpoint, http.NoBody)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+		req.Header.Set("Accept", "application/vnd.api+json")
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("firefly III API error: %d %s\n%s",
+				resp.StatusCode, resp.Status, string(body))
+		}
+
+		var result RuleArrayResponse
+		if err := json.Unmarshal(body, &result); err != nil {
+			return nil, err
+		}
+
+		allRules = append(allRules, result.Data...)
+
+		if result.Meta.Pagination.CurrentPage >= result.Meta.Pagination.TotalPages {
+			break
+		}
+		page++
+	}
+
+	return allRules, nil
 }
