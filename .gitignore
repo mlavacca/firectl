@@ -1,0 +1,56 @@
+# Binaries and build output
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+*.test
+*.out
+go.work
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and config
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Dependency directories
+node_modules/
+vendor/
+
+# GoReleaser artifacts
+dist/
+
+# Test coverage
+coverage.txt
+coverage.html
+*.cover
+
+# .reports
+.reports
+
+# OS-specific
+Thumbs.db
+.DS_Store
+
+# Temporary files
+tmp/
+*.tmp
+*.bak
