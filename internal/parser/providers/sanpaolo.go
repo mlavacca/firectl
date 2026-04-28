@@ -115,6 +115,13 @@ func (p *SanpaoloProvider) Parse(record []string, columnMap map[string]int, rowN
 				accountName = "Sanpaolo " + strings.TrimSpace(parts[1])
 			}
 		}
+
+		if strings.Contains(contoStr, "CLASSIC CARD") {
+			parts := strings.Split(contoStr, "CLASSIC CARD ")
+			if len(parts) > 1 {
+				accountName = "Sanpaolo carta di credito " + strings.TrimSpace(parts[1])
+			}
+		}
 	}
 
 	// Set source/destination based on transaction type
